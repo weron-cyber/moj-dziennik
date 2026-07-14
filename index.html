@@ -470,6 +470,37 @@ hr.rule{border:none;border-top:1px solid var(--ink);margin:28px 0 22px;}
 <div id="app"></div>
 
 <script>
+// Adres Twojego Workera (ten sam, co przy analizie):
+const API_ENDPOINT = "https://dziennik-proxy-2.weronnix.workers.dev";
+const ENTRIES_ENDPOINT = API_ENDPOINT + "/entries";
+const PASS_KEY = 'dziennik-pass';
+
+function getPassword(){ return localStorage.getItem(PASS_KEY) || ''; }
+function setPassword(pw){ localStorage.setItem(PASS_KEY, pw); }
+
+async function saveToStorage(){
+  try{
+    await fetch(ENTRIES_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-dziennik-pass':getPassword()},
+      body: JSON.stringify(state.entries)
+    });
+  }catch(e){
+    console.warn('Nie udało się zapisać archiwum:', e);
+  }
+}
+
+// zwraca true jeśli hasło poprawne i dane wczytane, false jeśli błędne hasło
+async function loadFromStorage(pw){
+  const res = await fetch(ENTRIES_ENDPOINT, {
+    headers:{'x-dziennik-pass':pw}
+  });
+  if(res.status===401) return false;
+  const parsed = await res.json();
+  if(Array.isArray(parsed)) state.entries = parsed;
+  return true;
+}
+
 const state = {
   entries: [],   // {id, date, text, status:'idle'|'loading'|'done'|'error', analysis, error}
   selectedId: null,
@@ -548,7 +579,7 @@ Zasady:
 Analizuj wyłącznie na podstawie treści wpisu, bez zmyślania faktów.`;
 
   try{
-    const response = await fetch("https://dziennik-proxy-2.weronnix.workers.dev",{
+    const response = await fetch(API_ENDPOINT,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
@@ -559,16 +590,22 @@ Analizuj wyłącznie na podstawie treści wpisu, bez zmyślania faktów.`;
       })
     });
     const data = await response.json();
+    if(!response.ok || data.type==='error'){
+      console.error('Błąd API:', data);
+      throw new Error(data?.error?.message || `HTTP ${response.status}`);
+    }
     let raw = (data.content||[]).map(b=>b.text||"").join("").trim();
     raw = raw.replace(/^```json/,'').replace(/^```/,'').replace(/```$/,'').trim();
     const parsed = JSON.parse(raw);
     entry.analysis = parsed;
     entry.status='done';
   }catch(e){
+    console.error('Analiza nie powiodła się:', e);
     entry.status='error';
-    entry.error = 'Nie udało się przeanalizować wpisu. Spróbuj ponownie.';
+    entry.error = 'Nie udało się przeanalizować wpisu: ' + e.message;
   }
   render();
+  saveToStorage();
 }
 
 function addEntry(date, text){
@@ -578,6 +615,7 @@ function addEntry(date, text){
   state.selectedId = entry.id;
   state.formOpen = false;
   render();
+  saveToStorage();
   analyzeEntry(entry);
 }
 
@@ -893,7 +931,8 @@ function render(){
 function onAction(e){
   const action = e.currentTarget.dataset.action;
   const id = e.currentTarget.dataset.id;
-  if(action==='select'){ state.selectedId = id; state.formOpen=false; render(); }
+  if(action==='unlock'){ tryUnlock(); }
+  else if(action==='select'){ state.selectedId = id; state.formOpen=false; render(); }
   else if(action==='view-day'){ state.view='day'; render(); }
   else if(action==='view-archive'){ state.view='archive'; render(); }
   else if(action==='view-monthly'){ state.view='monthly'; render(); }
@@ -922,7 +961,52 @@ function onAction(e){
   }
 }
 
-render();
+function renderLock(error){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="masthead"><h1>Dziennik — analiza dnia</h1></div>
+    <div class="entry-form" style="max-width:340px;margin:60px auto;">
+      <label>Hasło dostępu</label>
+      <input type="password" id="lock-pass" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);margin-bottom:10px;font-family:'Inter';font-size:14px;" placeholder="Wpisz hasło">
+      ${error?`<div class="err">${error}</div>`:''}
+      <div class="form-actions"><button class="btn" data-action="unlock">Wejdź</button></div>
+    </div>
+  `;
+  app.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click', onAction));
+  const inp = document.getElementById('lock-pass');
+  if(inp){
+    inp.focus();
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+  }
+}
+
+async function tryUnlock(){
+  const inp = document.getElementById('lock-pass');
+  const pw = inp ? inp.value : '';
+  document.getElementById('app').innerHTML = `<div class="loading">Sprawdzam hasło…</div>`;
+  const ok = await loadFromStorage(pw);
+  if(ok){
+    setPassword(pw);
+    if(state.entries.length>0){ state.selectedId = state.entries[state.entries.length-1].id; }
+    render();
+  }else{
+    renderLock('Nieprawidłowe hasło.');
+  }
+}
+
+(async function init(){
+  const cached = getPassword();
+  if(cached){
+    document.getElementById('app').innerHTML = `<div class="loading">Wczytuję…</div>`;
+    const ok = await loadFromStorage(cached);
+    if(ok){
+      if(state.entries.length>0){ state.selectedId = state.entries[state.entries.length-1].id; }
+      render();
+      return;
+    }
+  }
+  renderLock();
+})();
 </script>
 </body>
 </html>
