@@ -1145,7 +1145,7 @@ function updateWordCount(){
   const counter = document.getElementById('word-counter');
   if(!ta || !counter) return;
   const wc = wordCount(ta.value);
-  counter.textContent = `${wc} / ${WORD_LIMIT} słów`;
+  counter.textContent = `${wc} ${wc===1?'słowo':(wc>=2&&wc<=4?'słowa':'słów')}`;
   counter.classList.toggle('over-limit', wc>=WORD_LIMIT);
   if(wc>=WORD_LIMIT && !state.confettiShown){
     state.confettiShown = true;
