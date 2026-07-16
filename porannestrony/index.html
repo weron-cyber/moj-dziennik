@@ -1187,7 +1187,7 @@ function render(){
           <div id="textarea-wrap" class="textarea-wrap">
             <textarea id="entry-text" placeholder="Napisz, co dziś czujesz i o czym myślisz…">${escapeHtml(state.formText)}</textarea>
           </div>
-          <div class="word-counter-row"><span id="word-counter">0 / ${WORD_LIMIT} słów</span></div>
+          <div class="word-counter-row"><span id="word-counter">0 słów</span></div>
           <div class="form-actions">
             <button class="btn secondary" data-action="cancel-form">Anuluj</button>
             <button class="btn" data-action="submit-form">Dodaj wpis</button>
@@ -1309,8 +1309,7 @@ async function tryUnlock(){
   const ok = await loadFromStorage(pw);
   if(ok){
     setPassword(pw);
-    if(state.entries.length>0){ state.selectedId = state.entries[state.entries.length-1].id; }
-    render();
+    openForm();
   }else{
     renderLock('Nieprawidłowe hasło.');
   }
@@ -1322,8 +1321,7 @@ async function tryUnlock(){
     document.getElementById('app').innerHTML = `<div class="loading">Wczytuję…</div>`;
     const ok = await loadFromStorage(cached);
     if(ok){
-      if(state.entries.length>0){ state.selectedId = state.entries[state.entries.length-1].id; }
-      render();
+      openForm();
       return;
     }
   }
