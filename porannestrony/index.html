@@ -606,6 +606,75 @@ hr.rule{border:none;border-top:1px solid var(--ink);margin:28px 0 22px;}
   gap:6px;
 }
 
+/* checklist */
+.checklist-add{
+  display:flex;
+  gap:10px;
+  margin-bottom:24px;
+}
+.checklist-add input[type=text]{
+  flex:1;
+  padding:11px 14px;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:var(--paper-dim);
+  font-family:'Inter';
+  font-size:14px;
+  color:var(--ink);
+}
+.checklist{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.check-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border-bottom:1px solid var(--line);
+}
+.check-label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex:1;
+  min-width:0;
+  cursor:pointer;
+}
+.check-label input[type=checkbox]{
+  width:17px; height:17px;
+  accent-color:var(--moss);
+  flex:0 0 auto;
+  cursor:pointer;
+}
+.check-text{
+  font-size:14.5px;
+  line-height:1.5;
+  word-break:break-word;
+}
+.check-item.done .check-text{
+  text-decoration:line-through;
+  color:var(--ink-soft);
+}
+.check-meta{
+  font-size:11px;
+  color:var(--ink-soft);
+  white-space:nowrap;
+  flex:0 0 auto;
+}
+.check-del{
+  background:none;
+  border:none;
+  color:var(--ink-soft);
+  cursor:pointer;
+  font-size:13px;
+  padding:4px;
+  opacity:0.5;
+  flex:0 0 auto;
+}
+.check-del:hover{opacity:1; color:var(--rose);}
+
 /* lock screen */
 .lock-wrap{
   max-width:340px;
@@ -669,6 +738,30 @@ async function loadFromStorage(pw){
   return true;
 }
 
+async function loadChecklist(key){
+  try{
+    const res = await fetch(API_ENDPOINT + '/kv/checklist-' + key, { headers:{'x-dziennik-pass':getPassword()} });
+    if(!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }catch(e){
+    console.warn('Nie udało się wczytać listy:', key, e);
+    return [];
+  }
+}
+
+async function saveChecklist(key){
+  try{
+    await fetch(API_ENDPOINT + '/kv/checklist-' + key, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-dziennik-pass':getPassword()},
+      body: JSON.stringify(state.checklists[key])
+    });
+  }catch(e){
+    console.warn('Nie udało się zapisać listy:', key, e);
+  }
+}
+
 const state = {
   entries: [],   // {id, date, text, status:'idle'|'loading'|'done'|'error', analysis, error}
   selectedId: null,
@@ -676,8 +769,9 @@ const state = {
   formDate: null,
   formText: '',
   confettiShown: false,
-  view: 'day', // 'day' | 'archive' | 'monthly'
+  view: 'day', // 'day' | 'archive' | 'monthly' | 'wakacje' | 'plany2026'
   calendarMonth: null, // 'YYYY-MM'
+  checklists: { wakacje: [], plany2026: [] },
 };
 
 function uid(){ return Math.random().toString(36).slice(2,9); }
@@ -1050,6 +1144,32 @@ function renderMonthly(){
   return cards;
 }
 
+function renderChecklist(key, emptyLabel){
+  const items = state.checklists[key] || [];
+  const sorted = [...items].sort((a,b)=>{
+    if(!!a.done !== !!b.done) return a.done ? 1 : -1;
+    return (a.created||'').localeCompare(b.created||'');
+  });
+  const rows = sorted.map(it=>`
+    <div class="check-item ${it.done?'done':''}">
+      <label class="check-label">
+        <input type="checkbox" data-action="toggle-check" data-key="${key}" data-id="${it.id}" ${it.done?'checked':''}>
+        <span class="check-text">${escapeHtml(it.text)}</span>
+      </label>
+      <span class="check-meta">${it.done && it.doneDate ? 'odhaczone ' + fmtDate(it.doneDate) : ''}</span>
+      <button class="check-del" data-action="delete-check" data-key="${key}" data-id="${it.id}" title="Usuń">✕</button>
+    </div>`).join('');
+
+  return `
+    <div class="checklist-add">
+      <input type="text" id="new-check-${key}" placeholder="Dodaj punkt…" maxlength="200">
+      <button class="btn" data-action="add-check" data-key="${key}">Dodaj</button>
+    </div>
+    <div class="checklist">
+      ${items.length ? rows : `<div class="empty"><div class="big">📝</div><h2>${emptyLabel}</h2></div>`}
+    </div>`;
+}
+
 function renderCalendar(){
   const [y,m] = state.calendarMonth.split('-').map(Number);
   const first = new Date(y, m-1, 1);
@@ -1140,6 +1260,25 @@ function bindTextareaEvents(){
   }
 }
 
+function bindChecklistEvents(key){
+  const inp = document.getElementById('new-check-'+key);
+  if(inp){
+    inp.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ addChecklistItem(key); }
+    });
+  }
+}
+
+function addChecklistItem(key){
+  const inp = document.getElementById('new-check-'+key);
+  if(!inp) return;
+  const text = inp.value.trim();
+  if(!text) return;
+  state.checklists[key].push({ id:uid(), text, done:false, doneDate:null, created:todayStr() });
+  render();
+  saveChecklist(key);
+}
+
 function updateWordCount(){
   const ta = document.getElementById('entry-text');
   const counter = document.getElementById('word-counter');
@@ -1167,6 +1306,8 @@ function render(){
       <button class="view-btn ${state.view==='day'?'active':''}" data-action="view-day">Dzień</button>
       <button class="view-btn ${state.view==='archive'?'active':''}" data-action="view-archive">Archiwum</button>
       <button class="view-btn ${state.view==='monthly'?'active':''}" data-action="view-monthly">Statystyki miesięczne</button>
+      <button class="view-btn ${state.view==='wakacje'?'active':''}" data-action="view-wakacje">Plany na wakacje</button>
+      <button class="view-btn ${state.view==='plany2026'?'active':''}" data-action="view-plany2026">Plany na 2026</button>
     </div>`;
 
   let mainInner;
@@ -1174,6 +1315,10 @@ function render(){
     mainInner = `${viewSwitchHtml}${renderArchive()}`;
   } else if(state.view==='monthly'){
     mainInner = `${viewSwitchHtml}${renderMonthly()}`;
+  } else if(state.view==='wakacje'){
+    mainInner = `${viewSwitchHtml}${renderChecklist('wakacje','Brak planów na wakacje — dodaj pierwszy punkt.')}`;
+  } else if(state.view==='plany2026'){
+    mainInner = `${viewSwitchHtml}${renderChecklist('plany2026','Brak planów na 2026 — dodaj pierwszy punkt.')}`;
   } else {
     let body;
     if(state.formOpen){
@@ -1235,6 +1380,8 @@ function render(){
   if(state.view==='day' && state.formOpen){
     bindTextareaEvents();
   }
+  if(state.view==='wakacje'){ bindChecklistEvents('wakacje'); }
+  if(state.view==='plany2026'){ bindChecklistEvents('plany2026'); }
 }
 
 function onAction(e){
@@ -1246,6 +1393,25 @@ function onAction(e){
   else if(action==='view-day'){ state.view='day'; state.formOpen=false; render(); }
   else if(action==='view-archive'){ state.view='archive'; render(); }
   else if(action==='view-monthly'){ state.view='monthly'; render(); }
+  else if(action==='view-wakacje'){ state.view='wakacje'; render(); }
+  else if(action==='view-plany2026'){ state.view='plany2026'; render(); }
+  else if(action==='add-check'){ addChecklistItem(e.currentTarget.dataset.key); }
+  else if(action==='toggle-check'){
+    const key = e.currentTarget.dataset.key;
+    const item = state.checklists[key].find(x=>x.id===id);
+    if(item){
+      item.done = !item.done;
+      item.doneDate = item.done ? todayStr() : null;
+      render();
+      saveChecklist(key);
+    }
+  }
+  else if(action==='delete-check'){
+    const key = e.currentTarget.dataset.key;
+    state.checklists[key] = state.checklists[key].filter(x=>x.id!==id);
+    render();
+    saveChecklist(key);
+  }
   else if(action==='open-entry'){ state.selectedId=id; state.view='day'; state.formOpen=false; render(); }
   else if(action==='open-form'){ openForm(); }
   else if(action==='edit-entry'){ openForm(date); }
@@ -1302,6 +1468,12 @@ function renderLock(error){
   }
 }
 
+async function loadAllChecklists(){
+  const [w, p] = await Promise.all([loadChecklist('wakacje'), loadChecklist('plany2026')]);
+  state.checklists.wakacje = w;
+  state.checklists.plany2026 = p;
+}
+
 async function tryUnlock(){
   const inp = document.getElementById('lock-pass');
   const pw = inp ? inp.value : '';
@@ -1309,6 +1481,7 @@ async function tryUnlock(){
   const ok = await loadFromStorage(pw);
   if(ok){
     setPassword(pw);
+    await loadAllChecklists();
     openForm();
   }else{
     renderLock('Nieprawidłowe hasło.');
@@ -1321,6 +1494,7 @@ async function tryUnlock(){
     document.getElementById('app').innerHTML = `<div class="loading">Wczytuję…</div>`;
     const ok = await loadFromStorage(cached);
     if(ok){
+      await loadAllChecklists();
       openForm();
       return;
     }
