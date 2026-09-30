@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wkucharczyk — malarstwo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@300;400;500;600&display=swap');
+
+:root{
+  --fog:#DCE8F0;
+  --sky:#5E7E93;
+  --ink:#232830;
+  --paper:#F2EFE6;
+  --rust:#874E3C;
+  --blood:#A33733;
+  --line: rgba(35,40,48,0.14);
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  font-weight:300;
+  overflow-x:hidden;
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important;}
+}
+a{color:inherit;}
+:focus-visible{outline:2px solid var(--blood); outline-offset:3px;}
+.eyebrow{
+  font-size:11px;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+  color:var(--sky);
+  font-weight:500;
+}
+
+/* ============ SIDEBAR (stałe menu) ============ */
+.sidebar{
+  position:fixed; top:0; left:0; bottom:0; width:248px;
+  display:flex; flex-direction:column;
+  padding:38px 30px;
+  border-right:1px solid var(--line);
+  background:var(--paper);
+  z-index:60;
+}
+.wordmark{
+  font-family:'Fraunces',serif;
+  font-size:18px;
+  font-weight:500;
+  letter-spacing:0.01em;
+  display:flex; align-items:center; gap:9px;
+  cursor:pointer;
+  user-select:none;
+  background:none; border:none; padding:0; color:inherit;
+}
+.wordmark .mark{
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blood);
+  display:inline-block;
+  transition:transform .3s ease;
+  flex:0 0 auto;
+}
+.wordmark:hover .mark{transform:scale(1.4);}
+.sidebar-tagline{
+  font-size:11px; color:var(--ink); opacity:0.45; margin-top:8px; line-height:1.5; max-width:170px;
+}
+.side-nav{
+  margin-top:52px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.side-nav button{
+  all:unset; cursor:pointer; box-sizing:border-box;
+  font-family:'Inter'; font-size:13px; letter-spacing:0.03em;
+  padding:9px 0; opacity:0.62;
+  display:flex; align-items:center; gap:8px;
+  transition:opacity .2s, padding-left .2s, color .2s;
+}
+.side-nav button:hover{opacity:1; padding-left:4px;}
+.side-nav button.active{opacity:1; color:var(--rust); font-weight:500;}
+.side-nav button .dot{
+  width:4px; height:4px; border-radius:50%; background:var(--rust);
+  opacity:0; transition:opacity .2s;
+}
+.side-nav button.active .dot{opacity:1;}
+.sidebar-bottom{margin-top:auto; padding-top:24px;}
+.social-row{display:flex; gap:16px; align-items:center;}
+.social-row a, .social-row .icon-btn{
+  color:var(--ink); opacity:0.5; transition:opacity .2s; cursor:pointer;
+  display:flex;
+}
+.social-row a:hover, .social-row .icon-btn:hover{opacity:0.95;}
+.social-row svg{width:16px; height:16px;}
+.sidebar-copy{font-size:10px; color:var(--ink); opacity:0.35; margin-top:16px;}
+
+.menu-toggle{display:none;}
+
+@media (max-width:820px){
+  .sidebar{
+    flex-direction:row; align-items:center; justify-content:space-between;
+    width:100%; height:62px; bottom:auto;
+    border-right:none; border-bottom:1px solid var(--line);
+    padding:0 20px;
+  }
+  .sidebar-tagline{display:none;}
+  .side-nav{
+    position:fixed; top:62px; left:0; right:0; bottom:0;
+    margin-top:0; padding:26px 26px;
+    background:var(--paper);
+    transform:translateY(-8px);
+    opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:59;
+  }
+  .side-nav.open{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  .side-nav button{ font-size:16px; padding:13px 0; border-bottom:1px solid var(--line); }
+  .sidebar-bottom{
+    position:fixed; left:0; right:0; bottom:0;
+    padding:18px 26px 22px;
+    background:var(--paper);
+    border-top:1px solid var(--line);
+    transform:translateY(100%); opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:59; margin-top:0;
+  }
+  .side-nav.open ~ .sidebar-bottom{ transform:translateY(0); opacity:1; pointer-events:auto; }
+  .menu-toggle{
+    display:flex; flex-direction:column; justify-content:center; gap:5px;
+    width:24px; height:18px; background:none; border:none; cursor:pointer;
+  }
+  .menu-toggle span{ width:100%; height:1.5px; background:var(--ink); transition:transform .25s ease, opacity .2s ease; }
+  .menu-toggle.open span:nth-child(1){ transform:translateY(6.5px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2){ opacity:0; }
+  .menu-toggle.open span:nth-child(3){ transform:translateY(-6.5px) rotate(-45deg); }
+  .main{ margin-left:0 !important; padding-top:62px; }
+}
+
+/* ============ MAIN CONTENT ============ */
+.main{ margin-left:248px; min-height:100vh; }
+.view{ display:none; padding:64px 60px 110px; max-width:1220px; }
+.view.active{ display:block; }
+@media (max-width:820px){ .view{ padding:40px 22px 80px; } }
+
+/* ---------- widok: Start ---------- */
+#view-home.view{
+  padding:0; margin:0; height:100vh; max-width:none;
+  position:relative; overflow:hidden;
+}
+@media (max-width:820px){ #view-home.view{ height:calc(100vh - 62px); } }
+.home-hero{
+  position:relative; width:100%; height:100%;
+}
+.home-hero img, .home-hero svg{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.home-hero .overlay{
+  position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(to bottom, rgba(20,24,30,0.12) 0%, rgba(20,24,30,0.22) 45%, rgba(20,24,30,0.62) 100%);
+}
+.home-hero-text{
+  position:absolute; left:0; right:0; bottom:9%; z-index:2;
+  text-align:center; padding:0 40px;
+}
+.home-hero-text .eyebrow{ color:rgba(245,241,232,0.85); margin-bottom:14px; }
+.home-hero-text h1{
+  font-family:'Fraunces',serif; font-weight:500;
+  font-size:clamp(32px,5.4vw,66px); line-height:1.08;
+  color:#F5F1E8; letter-spacing:-0.01em;
+  text-shadow:0 2px 24px rgba(0,0,0,0.3);
+}
+.home-hero-text p{
+  margin:16px auto 0; max-width:440px;
+  font-size:14.5px; line-height:1.7; color:rgba(245,241,232,0.88);
+}
+.home-hero-link{
+  display:inline-block; margin-top:22px;
+  font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+  color:#F5F1E8; text-decoration:none;
+  border-bottom:1px solid rgba(245,241,232,0.55);
+  padding-bottom:3px; background:none; cursor:pointer;
+  transition:border-color .2s ease, opacity .2s ease;
+}
+.home-hero-link:hover{ border-color:#F5F1E8; }
+
+/* ---------- widok: Portfolio ---------- */
+.view-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:48px; flex-wrap:wrap; gap:14px; }
+.view-head h1{ font-family:'Fraunces',serif; font-weight:500; font-size:clamp(28px,3.4vw,42px); }
+
+.year-block{ margin-bottom:56px; }
+.year-head{ display:flex; align-items:baseline; gap:18px; margin-bottom:26px; }
+.year-head .year-num{ font-family:'Fraunces',serif; font-weight:500; font-size:16px; white-space:nowrap; }
+.year-head .rule{ flex:1; height:1px; background:var(--ink); opacity:0.55; }
+
+.year-row{ display:flex; flex-wrap:wrap; gap:10px; }
+.year-piece{
+  position:relative; overflow:hidden; cursor:pointer;
+  background:var(--ink);
+  flex:0 0 auto;
+}
+.year-piece.sz-sm{ width:200px; aspect-ratio:3/4; }
+.year-piece.sz-md{ width:290px; aspect-ratio:4/5; }
+.year-piece.sz-lg{ width:420px; aspect-ratio:16/10; }
+@media (max-width:600px){
+  .year-piece.sz-sm, .year-piece.sz-md, .year-piece.sz-lg{ width:100%; aspect-ratio:4/5; }
+}
+.year-piece img, .year-piece svg{
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform .6s cubic-bezier(0.22,1,0.36,1);
+}
+.year-piece:hover img, .year-piece:hover svg{ transform:scale(1.06); }
+.year-piece .cap{
+  position:absolute; left:0; right:0; bottom:0;
+  padding:12px 14px;
+  background:linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  color:#F5F1E8; font-size:12px; letter-spacing:0.02em;
+  opacity:0; transition:opacity .3s ease;
+}
+.year-piece:hover .cap{ opacity:1; }
+
+/* ---------- widok: O mnie ---------- */
+.about-grid{ display:grid; grid-template-columns:0.85fr 1fr; gap:64px; align-items:start; }
+@media (max-width:860px){ .about-grid{ grid-template-columns:1fr; gap:36px; } }
+.about-portrait{
+  aspect-ratio:3/4; border-radius:2px; position:relative; overflow:hidden;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 55%),
+    linear-gradient(160deg, #6F7E5B 0%, #5A4038 45%, #262729 100%);
+}
+.about-portrait::after{
+  content:'zdjęcie / obraz';
+  position:absolute; bottom:14px; left:14px;
+  font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+  color:rgba(255,255,255,0.55);
+}
+.about h1{ font-family:'Fraunces',serif; font-weight:500; font-size:clamp(28px,3.6vw,44px); line-height:1.14; margin-bottom:24px; }
+.about .lead{ font-size:16.5px; line-height:1.7; margin-bottom:18px; max-width:480px; }
+.about .body{ font-size:14.5px; line-height:1.8; color:rgba(35,40,48,0.75); max-width:480px; }
+.signature{ font-family:'Fraunces',serif; font-style:italic; font-size:19px; margin-top:24px; color:var(--sky); }
+.world-card{
+  margin-top:36px; border:1px solid var(--line); padding:22px 24px;
+  display:flex; justify-content:space-between; align-items:center; gap:18px; max-width:480px;
+}
+.world-card ul{ list-style:none; font-size:13.5px; line-height:2; color:rgba(35,40,48,0.75); }
+.world-card .ring{ width:42px; height:42px; border-radius:50%; border:1.5px solid var(--ink); flex:0 0 auto; }
+.about-contact{ margin-top:34px; font-size:13.5px; }
+.about-contact a{ color:var(--rust); text-decoration:none; border-bottom:1px solid currentColor; }
+
+/* ---------- lightbox ---------- */
+.lightbox{
+  position:fixed; inset:0; z-index:100;
+  background:rgba(20,22,26,0.94);
+  display:none; align-items:center; justify-content:center; padding:40px;
+}
+.lightbox.open{ display:flex; }
+.lightbox-inner{ max-width:720px; width:100%; text-align:center; }
+.lightbox-inner img, .lightbox-inner svg{ width:100%; max-height:72vh; object-fit:contain; }
+.lightbox-cap{ color:#F5F1E8; font-family:'Fraunces',serif; font-size:19px; margin-top:18px; }
+.lightbox-sub{ color:rgba(245,241,232,0.55); font-size:12px; margin-top:4px; letter-spacing:0.04em; }
+.lightbox-close{
+  position:absolute; top:26px; right:30px;
+  color:#F5F1E8; background:none; border:none; font-size:26px; cursor:pointer; opacity:0.7;
+}
+.lightbox-close:hover{ opacity:1; }
+
+/* ---------- easter egg fx (bez zmian funkcjonalnych) ---------- */
+.egg-toast{
+  position:fixed; left:50%; bottom:40px; transform:translate(-50%, 20px);
+  background:var(--ink); color:#F5F1E8;
+  padding:12px 20px; border-radius:3px;
+  font-family:'Fraunces',serif; font-style:italic; font-size:14px;
+  opacity:0; pointer-events:none;
+  transition:opacity .4s ease, transform .4s ease;
+  z-index:200; max-width:300px; text-align:center;
+}
+.egg-toast.show{ opacity:1; transform:translate(-50%, 0); }
+
+.blood-drop{
+  position:fixed; z-index:199; pointer-events:none; transform-origin:center top;
+  animation-name:drop-fall; animation-timing-function:cubic-bezier(0.55,0,0.85,0.35); animation-fill-mode:forwards;
+}
+.blood-drop svg{ width:100%; height:100%; display:block; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.25)); }
+@keyframes drop-fall{
+  0%{ transform:translateY(0) translateX(0) scaleY(0.65); opacity:0; }
+  8%{ opacity:1; transform:translateY(4px) translateX(0) scaleY(0.8) rotate(var(--rot)); }
+  100%{ transform:translateY(var(--fall)) translateX(var(--wobble)) scaleY(1.3) rotate(var(--rot)); opacity:1; }
+}
+.blood-splat{
+  position:fixed; z-index:198; pointer-events:none;
+  width:13px; height:6px; border-radius:50%;
+  background:radial-gradient(ellipse at center, #A33733 0%, #7a2822 65%, transparent 100%);
+  opacity:0;
+  animation:splat-in .22s ease-out forwards, splat-fade 1.6s ease-in 1.1s forwards;
+}
+@keyframes splat-in{ from{opacity:0; transform:scale(0.3);} to{opacity:0.9; transform:scale(1);} }
+@keyframes splat-fade{ to{opacity:0;} }
+
+.scanline-fx{
+  position:fixed; inset:0; z-index:198; pointer-events:none;
+  background:repeating-linear-gradient(to bottom, rgba(94,126,147,0.08) 0px, rgba(94,126,147,0.08) 1px, transparent 1px, transparent 3px);
+  opacity:0; animation:scan-flicker 1.6s ease-out forwards;
+}
+@keyframes scan-flicker{
+  0%{opacity:0;} 8%{opacity:0.9;} 12%{opacity:0.2;} 18%{opacity:0.8;} 30%{opacity:0.4;} 100%{opacity:0;}
+}
+.owl-fly{
+  position:fixed; z-index:199; top:22%; left:-40px; font-size:20px;
+  animation:owl-path 3.4s ease-in-out forwards; pointer-events:none;
+}
+@keyframes owl-path{
+  0%{ left:-40px; top:24%; opacity:0;} 10%{opacity:1;} 50%{ left:50%; top:14%; } 90%{opacity:1;} 100%{ left:110%; top:20%; opacity:0;}
+}
+.pixel-burst{
+  position:fixed; z-index:199; width:8px; height:8px; pointer-events:none;
+  animation:pixel-fly 0.9s ease-out forwards;
+}
+@keyframes pixel-fly{
+  0%{ transform:translate(0,0) scale(1); opacity:1; } 100%{ transform:translate(var(--dx), var(--dy)) scale(0); opacity:0; }
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <button class="wordmark" id="logo-mark" data-action="nav" data-view="home">
+    <span class="mark"></span>wkucharczyk
+  </button>
+
+  <button class="menu-toggle" id="menu-toggle"><span></span><span></span><span></span></button>
+
+  <nav class="side-nav" id="side-nav">
+    <div class="sidebar-tagline">Malarstwo — historie zapisane światłem i ciszą.</div>
+    <div style="height:1px;"></div>
+    <button data-action="nav" data-view="home" class="active"><span class="dot"></span>Start</button>
+    <button data-action="nav" data-view="portfolio"><span class="dot"></span>Portfolio</button>
+    <button data-action="nav" data-view="about"><span class="dot"></span>O mnie</button>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="social-row">
+      <a href="mailto:kontakt@wkucharczyk.pl" title="Email" aria-label="Email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg>
+      </a>
+      <a href="#" title="Instagram" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+      </a>
+      <span class="icon-btn" id="owl-trigger" title="" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 2 4 6 4 11c0 4 2 7 3 8l-1 3 4-2c.7.2 1.4.3 2 .3s1.3-.1 2-.3l4 2-1-3c1-1 3-4 3-8 0-5-3-9-8-9zm-3 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+      </span>
+    </div>
+    <div class="sidebar-copy">© <span id="year"></span> wkucharczyk.pl</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <section class="view active" id="view-home">
+    <div class="home-hero" id="home-hero">
+      <div class="overlay"></div>
+      <div class="home-hero-text">
+        <div class="eyebrow">Malarstwo — Weronika Kucharczyk</div>
+        <h1>Obrazy, które<br>słyszą ciszę.</h1>
+        <p>Historie zapisane światłem i kolorem — o samotności, naturze i śladach zapomnianych przyszłości.</p>
+        <button class="home-hero-link" data-action="nav" data-view="portfolio">Zobacz portfolio</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-portfolio">
+    <div class="view-head">
+      <h1>Portfolio</h1>
+      <div class="eyebrow">Kliknij, aby powiększyć</div>
+    </div>
+    <div id="portfolio-years"></div>
+  </section>
+
+  <section class="view" id="view-about">
+    <div class="about-grid about">
+      <div class="about-portrait"></div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:14px;">O mnie</div>
+        <h1>Maluję ciszę,<br>zanim stanie się historią.</h1>
+        <p class="lead">Tworzę nastrojowe obrazy inspirowane samotnością, naturą i śladami technologii, którą zapomniano wyłączyć.</p>
+        <p class="body">Moja praca to spokojne poszukiwanie historii ukrytych w miejscach, gdzie natura spotyka technologię, a cisza mówi więcej niż słowa. Maluję chwile, które wydają się znajome, a jednocześnie należą do zupełnie innego świata.</p>
+        <div class="signature">weronika</div>
+        <div class="world-card">
+          <ul>
+            <li>Obrazy olejne</li>
+            <li>Szkicowniki</li>
+            <li>Historie w trakcie</li>
+            <li>Kawa, książki, długie spacery</li>
+          </ul>
+          <div class="ring"></div>
+        </div>
+        <div class="about-contact">Pytania o oryginały, druki albo współpracę — <a href="mailto:kontakt@wkucharczyk.pl">napisz</a>.</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close">✕</button>
+  <div class="lightbox-inner">
+    <div id="lightbox-media"></div>
+    <div class="lightbox-cap" id="lightbox-cap"></div>
+    <div class="lightbox-sub" id="lightbox-sub"></div>
+  </div>
+</div>
+
+<div class="egg-toast" id="egg-toast"></div>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+document.documentElement.style.overflow = 'hidden';
+document.body.style.overflow = 'hidden';
+
+/* ================= PRACE =================
+   Aby dodać nową pracę: dopisz obiekt do tablicy `works`.
+   - src: ścieżka do pliku w images/prace/ (jeśli brak, pokaże się placeholder SVG)
+   - title: tytuł widoczny po najechaniu / w powiększeniu
+   - year: rok — decyduje, w której sekcji portfolio się znajdzie
+   - size: 'sm' | 'md' | 'lg' — rozmiar kafelka w widoku Portfolio
+   - home: true — jeśli praca ma być jedną z 3 na stronie głównej
+=================================================== */
+const works = [
+  { id:'w1', src:'images/praca-01.jpg', title:'Pole, świt, towarzysz', year:2025, size:'lg', home:true },
+  { title:'Wieża ciśnień', year:2025, size:'md', home:true, colors:['#5E7E93','#DCE8F0'], type:'tower' },
+  { title:'Postać nad wodą', year:2025, size:'sm', home:true, colors:['#6F7E5B','#233447'], type:'figure' },
+  { title:'Kula, pole, świt', year:2025, size:'md', colors:['#3d5164','#90A9BC'], type:'sphere' },
+  { title:'Pracownia', year:2024, size:'sm', colors:['#5A4038','#874E3C'], type:'studio' },
+  { title:'Szkicownik, 2024', year:2024, size:'sm', colors:['#B08A5B','#262729'], type:'sketch' },
+  { title:'Sygnał', year:2024, size:'lg', colors:['#233447','#A33733'], type:'signal' },
+];
+
+function pieceSVG(p){
+  const [c1,c2] = p.colors || ['#5E7E93','#233447'];
+  const gid = 'g' + Math.random().toString(36).slice(2);
+  let extra = '';
+  if(p.type==='sphere'){ extra = `<circle cx="200" cy="150" r="46" fill="${c2}" opacity="0.9"/><rect x="60" y="230" width="6" height="30" fill="#20242b" opacity="0.6"/>`; }
+  else if(p.type==='tower'){ extra = `<rect x="190" y="60" width="20" height="120" fill="${c2}" opacity="0.85"/><polygon points="170,180 230,180 200,60" fill="none" stroke="${c2}" stroke-width="3" opacity="0.6"/>`; }
+  else if(p.type==='figure'){ extra = `<rect x="150" y="190" width="6" height="24" fill="#20242b" opacity="0.7"/><circle cx="153" cy="184" r="5" fill="#20242b" opacity="0.7"/>`; }
+  else if(p.type==='studio'){ extra = `<rect x="40" y="200" width="220" height="4" fill="${c2}" opacity="0.5"/><rect x="60" y="140" width="10" height="60" fill="${c2}" opacity="0.6"/><rect x="90" y="120" width="10" height="80" fill="${c2}" opacity="0.5"/>`; }
+  else if(p.type==='sketch'){ extra = `<rect x="70" y="70" width="160" height="180" fill="none" stroke="${c2}" stroke-width="2" opacity="0.5"/>`; }
+  else { extra = `<circle cx="200" cy="150" r="70" fill="none" stroke="${c2}" stroke-width="2" opacity="0.7"/><line x1="200" y1="80" x2="200" y2="220" stroke="${c2}" stroke-width="1" opacity="0.4"/>`; }
+  return `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="#20242b"/>
+    </linearGradient></defs>
+    <rect width="300" height="300" fill="url(#${gid})"/>
+    ${extra}
+  </svg>`;
+}
+function pieceMedia(p){
+  return p.src ? `<img src="${p.src}" alt="${p.title}" loading="lazy">` : pieceSVG(p);
+}
+
+/* ---- Start: jedna centralna praca ---- */
+const HERO_WORK = works.find(w=>w.id==='w1') || works[0];
+document.getElementById('home-hero').insertAdjacentHTML('afterbegin', pieceMedia(HERO_WORK));
+
+/* ---- Portfolio: grupowanie wg roku ---- */
+const years = [...new Set(works.map(w=>w.year))].sort((a,b)=>b-a);
+const yearsWrap = document.getElementById('portfolio-years');
+years.forEach(year=>{
+  const block = document.createElement('div');
+  block.className = 'year-block';
+  const row = works.filter(w=>w.year===year).map(p=>`
+    <div class="year-piece sz-${p.size||'md'}" data-work="${p.id||''}">
+      ${pieceMedia(p)}
+      <div class="cap">${p.title}</div>
+    </div>`).join('');
+  block.innerHTML = `
+    <div class="year-head"><div class="year-num">${year}</div><div class="rule"></div></div>
+    <div class="year-row">${row}</div>`;
+  yearsWrap.appendChild(block);
+});
+yearsWrap.querySelectorAll('.year-piece').forEach((el,i)=>{
+  const flatList = years.flatMap(y=>works.filter(w=>w.year===y));
+  el.addEventListener('click', ()=> openLightbox(flatList[i]));
+});
+
+/* ---- Lightbox ---- */
+function openLightbox(p){
+  document.getElementById('lightbox-media').innerHTML = pieceMedia(p);
+  document.getElementById('lightbox-cap').textContent = p.title;
+  document.getElementById('lightbox-sub').textContent = p.year || '';
+  document.getElementById('lightbox').classList.add('open');
+}
+document.getElementById('lightbox-close').addEventListener('click', ()=>{
+  document.getElementById('lightbox').classList.remove('open');
+});
+document.getElementById('lightbox').addEventListener('click', (e)=>{
+  if(e.target.id==='lightbox') document.getElementById('lightbox').classList.remove('open');
+});
+
+/* ================= NAWIGACJA (widoki bez przeładowania) ================= */
+function setView(view){
+  document.querySelectorAll('.view').forEach(v=> v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.side-nav button[data-view]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.view===view);
+  });
+  document.documentElement.style.overflow = (view==='home') ? 'hidden' : '';
+  document.body.style.overflow = (view==='home') ? 'hidden' : '';
+  window.scrollTo(0,0);
+  closeMobileMenu();
+}
+document.querySelectorAll('[data-action="nav"]').forEach(el=>{
+  el.addEventListener('click', ()=> setView(el.dataset.view));
+});
+
+/* ---- menu mobilne ---- */
+const menuToggle = document.getElementById('menu-toggle');
+const sideNav = document.getElementById('side-nav');
+function closeMobileMenu(){
+  sideNav.classList.remove('open');
+  menuToggle.classList.remove('open');
+}
+menuToggle.addEventListener('click', ()=>{
+  sideNav.classList.toggle('open');
+  menuToggle.classList.toggle('open');
+});
+
+/* ============ EASTER EGGS (4) ============ */
+function showToast(text, duration=3200){
+  const t = document.getElementById('egg-toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.classList.remove('show'), duration);
+}
+
+/* --- egg 1: klik w logo x5 --- */
+function spawnBloodDrops(originEl){
+  const rect = originEl.getBoundingClientRect();
+  const originX = rect.left + 16;
+  const originY = rect.top + rect.height/2;
+  const count = 4 + Math.floor(Math.random()*2);
+  for(let i=0;i<count;i++){
+    const w = 7 + Math.random()*5;
+    const h = w*1.55;
+    const startX = originX + (Math.random()*10-5);
+    const fall = 130 + Math.random()*90;
+    const wobble = Math.random()*10-5;
+    const rot = 44 + (Math.random()*10-5);
+    const dur = 0.8 + Math.random()*0.5;
+    const delay = i*0.09 + Math.random()*0.06;
+    const drop = document.createElement('div');
+    drop.className = 'blood-drop';
+    drop.style.left = startX+'px'; drop.style.top = originY+'px';
+    drop.style.width = w+'px'; drop.style.height = h+'px';
+    drop.style.setProperty('--fall', fall+'px');
+    drop.style.setProperty('--wobble', wobble+'px');
+    drop.style.setProperty('--rot', rot+'deg');
+    drop.style.animationDuration = dur+'s';
+    drop.style.animationDelay = delay+'s';
+    drop.innerHTML = `<svg viewBox="0 0 24 34" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 0C12 0 24 18 24 24 24 29.5 18.6 34 12 34S0 29.5 0 24C0 18 12 0 12 0Z" fill="#A33733"/>
+      <ellipse cx="9" cy="19" rx="2.2" ry="3.6" fill="#c96a5f" opacity="0.5"/>
+    </svg>`;
+    document.body.appendChild(drop);
+    setTimeout(()=>{
+      const splat = document.createElement('div');
+      splat.className = 'blood-splat';
+      splat.style.left = (startX + wobble - 6)+'px';
+      splat.style.top = (originY + fall - 2)+'px';
+      document.body.appendChild(splat);
+      drop.remove();
+      setTimeout(()=> splat.remove(), 2000);
+    }, (dur+delay)*1000);
+  }
+}
+let logoClicks = 0, logoTimer = null;
+document.getElementById('logo-mark').addEventListener('click', ()=>{
+  logoClicks++;
+  clearTimeout(logoTimer);
+  logoTimer = setTimeout(()=> logoClicks = 0, 900);
+  if(logoClicks>=5){
+    logoClicks = 0;
+    spawnBloodDrops(document.getElementById('logo-mark'));
+    showToast('Twój mroczny pasażer właśnie się obudził.');
+  }
+});
+
+/* --- egg 2: wpisanie "loop" gdziekolwiek na stronie --- */
+let buffer = '';
+window.addEventListener('keydown', (e)=>{
+  if(e.key.length===1) buffer += e.key.toLowerCase();
+  buffer = buffer.slice(-12);
+  if(buffer.includes('loop')){
+    buffer = '';
+    const fx = document.createElement('div');
+    fx.className = 'scanline-fx';
+    document.body.appendChild(fx);
+    setTimeout(()=> fx.remove(), 1700);
+    showToast('Zakłócenie w pętli czasu… chwilowe.');
+  }
+});
+
+/* --- egg 3: trzymanie kursora na sowie --- */
+let owlHoldTimer = null;
+const owlEl = document.getElementById('owl-trigger');
+owlEl.addEventListener('mouseenter', ()=>{
+  owlHoldTimer = setTimeout(()=>{
+    const owl = document.createElement('div');
+    owl.className = 'owl-fly';
+    owl.textContent = '🦉';
+    document.body.appendChild(owl);
+    setTimeout(()=> owl.remove(), 3500);
+    showToast('Sowa się pomyliła adresem. Znowu.');
+  }, 1400);
+});
+owlEl.addEventListener('mouseleave', ()=> clearTimeout(owlHoldTimer));
+
+/* --- egg 4: kod Konami --- */
+const konamiSeq = ['arrowup','arrowup','arrowdown','arrowdown','arrowleft','arrowright','arrowleft','arrowright','b','a'];
+let konamiPos = 0;
+window.addEventListener('keydown', (e)=>{
+  const key = e.key.toLowerCase();
+  if(key === konamiSeq[konamiPos]){
+    konamiPos++;
+    if(konamiPos === konamiSeq.length){
+      konamiPos = 0;
+      const cx = window.innerWidth/2, cy = window.innerHeight/2;
+      const colors = ['#A33733','#5E7E93','#874E3C','#DCE8F0'];
+      for(let i=0;i<24;i++){
+        const p = document.createElement('div');
+        p.className = 'pixel-burst';
+        const angle = (i/24) * Math.PI * 2;
+        const dist = 120 + Math.random()*80;
+        p.style.setProperty('--dx', Math.cos(angle)*dist + 'px');
+        p.style.setProperty('--dy', Math.sin(angle)*dist + 'px');
+        p.style.left = cx+'px'; p.style.top = cy+'px';
+        p.style.background = colors[i % colors.length];
+        document.body.appendChild(p);
+        setTimeout(()=> p.remove(), 950);
+      }
+      showToast('Znalezione. Jak zawsze.');
+    }
+  } else {
+    konamiPos = (key === konamiSeq[0]) ? 1 : 0;
+  }
+});
+</script>
+</body>
+</html>
